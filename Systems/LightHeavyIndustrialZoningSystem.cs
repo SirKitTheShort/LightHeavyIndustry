@@ -1,0 +1,362 @@
+﻿using Colossal.Logging;
+using Game;
+using Game.Prefabs;
+using Game.SceneFlow;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Unity.Entities;
+using UnityEngine;
+
+namespace LightHeavyIndustry.Systems
+{
+    /// <summary>
+    /// Creates Light Industry and Heavy Industry zone types
+    /// Light = no chimneys/smoke, minimal pollution, lower profit
+    /// Heavy = exact same as vanilla Industrial Manufacturing
+    /// </summary>
+    public partial class LightHeavyIndustryZoningSystem : GameSystemBase
+    {
+        private PrefabSystem _prefabSystem;
+        private List<PrefabBase> _allPrefabs;
+
+        private ZonePrefab _vanillaIndustrialZone;
+        private ZonePrefab _lightIndustryZone;
+        private ZonePrefab _heavyIndustryZone;
+
+        // List of sub-object names to remove from Light Industry prefabs
+        private static readonly HashSet<string> EffectNamesToRemove = new(StringComparer.OrdinalIgnoreCase)
+        {
+            // VFX Effects
+            "FireBigVFX", "FireEmbersVFX", "FireMediumVFX", "FireMovingMediumVFX",
+            "FireSmallVFX", "FireTinyVFX", "GasFlareFIreVFX", "SmokeFromFireVFX",
+            "WaterVaporFactoryBig", "WaterVaporFactorySmallVFX", "WaterVaporHugeVFX",
+            
+            // Chimney Props
+            "IndustrialChimneyLarge01 Agriculture", "IndustrialChimneyLarge02 Forestry",
+            "IndustrialChimneyLarge03 Oil", "IndustrialChimneyLarge04 Ore",
+            "IndustrialChimneyLargeRandom01",
+            "IndustrialChimneyMedium01 Agriculture", "IndustrialChimneyMedium02 Forestry",
+            "IndustrialChimneyMedium03 Oil", "IndustrialChimneyMedium04 Ore",
+            "IndustrialChimneyMediumRandom01",
+            "IndustrialChimneySmall01 Agriculture", "IndustrialChimneySmall02 Forestry",
+            "IndustrialChimneySmall03 Oil", "IndustrialChimneySmall04 Ore",
+            "IndustrialChimneySmallRandom01",
+            
+            // Decoration Props
+            "IndustrialManufacturingDecoration03_2x2 Oil",
+            "IndustrialManufacturingDecoration04_2x2 Ore",
+            "IndustrialManufacturingDecoration04_2x4 Ore",
+            
+            // Warning Lights
+            "WarningLight01", "WarningLight02", "WarningLightRandom01"
+        };
+
+        // Hardcoded blacklist of building prefabs that shouldn't appear in Light Industry
+        private static readonly HashSet<string> HardcodedBlacklist = new()
+        {
+            // Add building names here from CS2 Asset Editor
+        };
+
+        private HashSet<string> _lightIndustryBlacklist = new();
+
+        private bool _zonesCreated = false;
+
+        protected override void OnCreate()
+        {
+            base.OnCreate();
+
+            _prefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
+
+            // Access the internal m_Prefabs list using reflection
+            var prefabsField = typeof(PrefabSystem).GetField("m_Prefabs",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+
+            if (prefabsField == null)
+            {
+                Mod.log.Error("Could not access m_Prefabs field in PrefabSystem!");
+                return;
+            }
+
+            _allPrefabs = prefabsField.GetValue(_prefabSystem) as List<PrefabBase>;
+
+            if (_allPrefabs == null)
+            {
+                Mod.log.Error("m_Prefabs is null!");
+                return;
+            }
+
+            // Load blacklist from settings
+            LoadBlacklist();
+
+            Mod.log.Info("LightHeavyIndustryZoningSystem created successfully");
+        }
+
+        protected override void OnUpdate()
+        {
+            // Only create zones once
+            if (_zonesCreated) return;
+
+            try
+            {
+                Mod.log.Info("=== Creating Light/Heavy Industry Zones ===");
+
+                // Find the vanilla Industrial Manufacturing zone
+                _vanillaIndustrialZone = _allPrefabs
+                    .OfType<ZonePrefab>()
+                    .FirstOrDefault(z => z.name == "Industrial Manufacturing");
+
+                if (_vanillaIndustrialZone == null)
+                {
+                    Mod.log.Error("Could not find vanilla 'Industrial Manufacturing' zone!");
+                    return;
+                }
+
+                Mod.log.Info($"Found vanilla zone: {_vanillaIndustrialZone.name}");
+
+                // Get all buildings that can spawn in industrial zones
+                var industrialBuildings = _allPrefabs
+                    .OfType<BuildingPrefab>()
+                    .Where(b => b.components.OfType<SpawnableBuilding>()
+                        .Any(c => c.m_ZoneType == _vanillaIndustrialZone))
+                    .ToArray();
+
+                Mod.log.Info($"Found {industrialBuildings.Length} industrial buildings");
+
+                // Create Light Industry zone (vanilla yellow color)
+                _lightIndustryZone = CreateLightIndustryZone(_vanillaIndustrialZone);
+                if (_lightIndustryZone != null)
+                {
+                    _prefabSystem.AddPrefab(_lightIndustryZone);
+                    Mod.log.Info($"Created Light Industry zone: {_lightIndustryZone.name}");
+
+                    // Clone buildings for Light Industry (filtered by blacklist, chimneys removed from prefabs)
+                    var lightBuildings = CloneBuildingsForZone(
+                        industrialBuildings,
+                        _lightIndustryZone,
+                        "LightIndustrial",
+                        applyBlacklist: true,
+                        removeChimneys: true);
+
+                    foreach (var building in lightBuildings)
+                    {
+                        _prefabSystem.AddPrefab(building);
+                    }
+
+                    Mod.log.Info($"Cloned {lightBuildings.Count} buildings for Light Industrial Manufacturing");
+                }
+
+                // Create Heavy Industry zone (same as vanilla, just renamed)
+                _heavyIndustryZone = CreateHeavyIndustryZone(_vanillaIndustrialZone);
+                if (_heavyIndustryZone != null)
+                {
+                    _prefabSystem.AddPrefab(_heavyIndustryZone);
+                    Mod.log.Info($"Created Heavy Industry zone: {_heavyIndustryZone.name}");
+
+                    // Clone all buildings for Heavy Industry (no blacklist, keep chimneys)
+                    var heavyBuildings = CloneBuildingsForZone(
+                        industrialBuildings,
+                        _heavyIndustryZone,
+                        "HeavyIndustrial",
+                        applyBlacklist: false,
+                        removeChimneys: false);
+
+                    foreach (var building in heavyBuildings)
+                    {
+                        _prefabSystem.AddPrefab(building);
+                    }
+
+                    Mod.log.Info($"Cloned {heavyBuildings.Count} buildings for Heavy Industrial Manufacturing");
+                }
+
+                _zonesCreated = true;
+
+                // Register UI labels for the zones
+                RegisterZoneLabels();
+
+                Mod.log.Info("=== Zone Creation Complete ===");
+            }
+            catch (Exception ex)
+            {
+                Mod.log.Error(ex, "Failed to create zones");
+            }
+        }
+
+        private void LoadBlacklist()
+        {
+            _lightIndustryBlacklist = new HashSet<string>(HardcodedBlacklist);
+
+            if (Mod.Settings?.LightIndustryBlacklist != null)
+            {
+                foreach (var item in Mod.Settings.LightIndustryBlacklist)
+                {
+                    _lightIndustryBlacklist.Add(item);
+                }
+            }
+
+            Mod.log.Info($"Loaded {_lightIndustryBlacklist.Count} blacklisted buildings");
+        }
+
+        private ZonePrefab CreateLightIndustryZone(ZonePrefab sourceZone)
+        {
+            var zone = sourceZone.Clone("LightIndustrialManufacturing") as ZonePrefab;
+
+            if (zone == null)
+            {
+                Mod.log.Error("Failed to clone zone for Light Industry");
+                return null;
+            }
+
+            Mod.log.Info($"Light Industrial Manufacturing zone color: {zone.m_Edge} (vanilla yellow)");
+
+            // Set custom icon (requires icon file in mod's UI/Media folder)
+            var uiObj = zone.GetComponent<UIObject>();
+            if (uiObj != null)
+            {
+                uiObj.m_Icon = "coui://LightHeavyIndustry/UI/Media/LightIndustry.svg";
+            }
+
+            return zone;
+        }
+
+        private ZonePrefab CreateHeavyIndustryZone(ZonePrefab sourceZone)
+        {
+            var zone = sourceZone.Clone("HeavyIndustrialManufacturing") as ZonePrefab;
+
+            if (zone == null)
+            {
+                Mod.log.Error("Failed to clone zone for Heavy Industry");
+                return null;
+            }
+
+            zone.m_Edge = new Color(1.0f, 0.5f, 0.0f);
+            Mod.log.Info($"Heavy Industrial Manufacturing zone color: {zone.m_Edge} (bright orange)");
+
+            // Set custom icon (requires icon file in mod's UI/Media folder)
+            // Uncomment these lines if you add a HeavyIndustry.svg icon:
+            // var uiObj = zone.GetComponent<UIObject>();
+            // if (uiObj != null)
+            // {
+            //     uiObj.m_Icon = "coui://LightHeavyIndustry/HeavyIndustry.svg";
+            // }
+
+            return zone;
+        }
+
+        private List<BuildingPrefab> CloneBuildingsForZone(
+            BuildingPrefab[] sourceBuildings,
+            ZonePrefab targetZone,
+            string prefix,
+            bool applyBlacklist,
+            bool removeChimneys)
+        {
+            var clonedBuildings = new List<BuildingPrefab>();
+            int blacklistedCount = 0;
+            int totalChimneysRemoved = 0;
+
+            foreach (var sourceBuilding in sourceBuildings)
+            {
+                try
+                {
+                    // Check blacklist for Light Industry
+                    if (applyBlacklist && _lightIndustryBlacklist.Contains(sourceBuilding.name))
+                    {
+                        blacklistedCount++;
+                        continue;
+                    }
+
+                    var newName = $"{prefix}_{sourceBuilding.name}";
+                    var building = sourceBuilding.Clone(newName) as BuildingPrefab;
+
+                    if (building == null)
+                    {
+                        Mod.log.Warn($"Failed to clone building: {sourceBuilding.name}");
+                        continue;
+                    }
+
+                    // Assign to the new zone
+                    var spawnableBuilding = building.GetComponent<SpawnableBuilding>();
+                    if (spawnableBuilding != null)
+                    {
+                        spawnableBuilding.m_ZoneType = targetZone;
+                    }
+
+                    // Remove chimneys/smoke from prefab components
+                    if (removeChimneys)
+                    {
+                        int removed = RemoveChimneysFromPrefabComponents(building);
+                        totalChimneysRemoved += removed;
+                    }
+
+                    clonedBuildings.Add(building);
+                }
+                catch (Exception ex)
+                {
+                    Mod.log.Error(ex, $"Failed to clone building {sourceBuilding.name}");
+                }
+            }
+
+            if (blacklistedCount > 0)
+            {
+                Mod.log.Info($"Excluded {blacklistedCount} blacklisted buildings");
+            }
+
+            if (totalChimneysRemoved > 0)
+            {
+                Mod.log.Info($"Removed {totalChimneysRemoved} chimney/smoke components from Light Industry building prefabs");
+            }
+
+            return clonedBuildings;
+        }
+
+        private int RemoveChimneysFromPrefabComponents(BuildingPrefab building)
+        {
+            // NOTE: This approach doesn't work in CS2 - prefab modifications don't prevent spawning
+            // We've moved to a continuous removal approach in LightIndustryBuildingProcessorSystem instead
+            // Keeping this for reference but it won't be called
+            return 0;
+        }
+
+        public bool IsLightIndustryZone(ZonePrefab zone)
+        {
+            return zone != null && zone.name == "LightIndustrialManufacturing";
+        }
+
+        public bool IsHeavyIndustryZone(ZonePrefab zone)
+        {
+            return zone != null && zone.name == "HeavyIndustrialManufacturing";
+        }
+
+        private void RegisterZoneLabels()
+        {
+            try
+            {
+                if (!_prefabSystem.TryGetEntity(_lightIndustryZone, out var lightEntity))
+                {
+                    Mod.log.Warn("Could not get entity for Light Industry zone");
+                    return;
+                }
+
+                if (!_prefabSystem.TryGetEntity(_heavyIndustryZone, out var heavyEntity))
+                {
+                    Mod.log.Warn("Could not get entity for Heavy Industry zone");
+                    return;
+                }
+
+                var localeSource = new ZoneLocalizationSource(lightEntity, heavyEntity);
+
+                foreach (var localeId in GameManager.instance.localizationManager.GetSupportedLocales())
+                {
+                    GameManager.instance.localizationManager.AddSource(localeId, localeSource);
+                }
+
+                Mod.log.Info("Zone UI labels registered successfully");
+            }
+            catch (Exception ex)
+            {
+                Mod.log.Error(ex, "Failed to register zone labels");
+            }
+        }
+    }
+}
