@@ -11,43 +11,19 @@ using Unity.Entities;
 namespace LightHeavyIndustry.Systems
 {
     /// <summary>
-    /// Monitors spawned industrial buildings and:
-    /// - Hides chimneys/smoke from Light Industry buildings (backup for prefab-level removal)
-    /// - Sets pollution values
+    /// Minimal monitoring system for Light Industry buildings
+    /// Only processes buildings ONCE when they transition from UnderConstruction to completed
     /// </summary>
     public partial class LightIndustryBuildingProcessorSystem : GameSystemBase
     {
         private PrefabSystem _prefabSystem;
-        private EntityQuery _completedBuildingsQuery;
-        private HashSet<int> _processedBuildingIndices = new();
+        private EntityQuery _justCompletedBuildingsQuery;
 
-        // List of effect names to hide
-        private static readonly HashSet<string> EffectNamesToRemove = new(StringComparer.OrdinalIgnoreCase)
-        {
-            // VFX Effects
-            "FireBigVFX", "FireEmbersVFX", "FireMediumVFX", "FireMovingMediumVFX",
-            "FireSmallVFX", "FireTinyVFX", "GasFlareFIreVFX", "SmokeFromFireVFX",
-            "WaterVaporFactoryBig", "WaterVaporFactorySmallVFX", "WaterVaporHugeVFX",
-            
-            // Chimney Props
-            "IndustrialChimneyLarge01 Agriculture", "IndustrialChimneyLarge02 Forestry",
-            "IndustrialChimneyLarge03 Oil", "IndustrialChimneyLarge04 Ore",
-            "IndustrialChimneyLargeRandom01",
-            "IndustrialChimneyMedium01 Agriculture", "IndustrialChimneyMedium02 Forestry",
-            "IndustrialChimneyMedium03 Oil", "IndustrialChimneyMedium04 Ore",
-            "IndustrialChimneyMediumRandom01",
-            "IndustrialChimneySmall01 Agriculture", "IndustrialChimneySmall02 Forestry",
-            "IndustrialChimneySmall03 Oil", "IndustrialChimneySmall04 Ore",
-            "IndustrialChimneySmallRandom01",
-            
-            // Decoration Props
-            "IndustrialManufacturingDecoration03_2x2 Oil",
-            "IndustrialManufacturingDecoration04_2x2 Ore",
-            "IndustrialManufacturingDecoration04_2x4 Ore",
-            
-            // Warning Lights
-            "WarningLight01", "WarningLight02", "WarningLightRandom01"
-        };
+        // Track which buildings have been processed (prevent duplicate processing)
+        private HashSet<int> _processedBuildings = new();
+
+        // Frame counter for cleanup
+        private uint _frameCounter = 0;
 
         protected override void OnCreate()
         {
@@ -55,12 +31,16 @@ namespace LightHeavyIndustry.Systems
 
             _prefabSystem = World.GetOrCreateSystemManaged<PrefabSystem>();
 
-            _completedBuildingsQuery = GetEntityQuery(new EntityQueryDesc
+            // Query for buildings that JUST completed construction
+            // This query will only match buildings for ONE frame (when Updated component is added after construction completes)
+            _justCompletedBuildingsQuery = GetEntityQuery(new EntityQueryDesc
             {
                 All = new ComponentType[]
                 {
                     ComponentType.ReadOnly<Building>(),
-                    ComponentType.ReadOnly<PrefabRef>()
+                    ComponentType.ReadOnly<PrefabRef>(),
+                    ComponentType.ReadOnly<Game.Buildings.IndustrialProperty>(),
+                    ComponentType.ReadOnly<Updated>()  // CRITICAL: Only buildings that just got Updated component
                 },
                 None = new ComponentType[]
                 {
@@ -69,33 +49,48 @@ namespace LightHeavyIndustry.Systems
                 }
             });
 
-            Mod.log.Info("LightIndustryBuildingProcessorSystem created");
+            Mod.log.Info("LightIndustryBuildingProcessorSystem created (minimal mode - only processes newly completed buildings once)");
         }
 
         protected override void OnUpdate()
         {
-            if (!Mod.Settings.Enabled) return;
+            _frameCounter++;
 
-            var buildings = _completedBuildingsQuery.ToEntityArray(Allocator.Temp);
-            int processedThisFrame = 0;
+            // Only process if there are buildings that just completed construction
+            if (!_justCompletedBuildingsQuery.IsEmptyIgnoreFilter)
+            {
+                ProcessJustCompletedBuildings();
+            }
+
+            // Cleanup old entries every 10 seconds to prevent memory growth
+            if (_frameCounter % 600 == 0)
+            {
+                CleanupOldEntries();
+            }
+        }
+
+        /// <summary>
+        /// Process buildings that JUST completed construction (one-time processing)
+        /// </summary>
+        private void ProcessJustCompletedBuildings()
+        {
+            var buildings = _justCompletedBuildingsQuery.ToEntityArray(Allocator.Temp);
+            int processedCount = 0;
 
             foreach (var buildingEntity in buildings)
             {
-                if (_processedBuildingIndices.Contains(buildingEntity.Index))
+                // Skip if already processed
+                if (_processedBuildings.Contains(buildingEntity.Index))
                     continue;
 
                 if (!IsLightIndustryBuilding(buildingEntity))
-                {
-                    _processedBuildingIndices.Add(buildingEntity.Index);
                     continue;
-                }
-
-                _processedBuildingIndices.Add(buildingEntity.Index);
 
                 try
                 {
-                    ProcessLightIndustryBuilding(buildingEntity);
-                    processedThisFrame++;
+                    // Mark as processed - no pollution setting needed, it's on the zone!
+                    _processedBuildings.Add(buildingEntity.Index);
+                    processedCount++;
                 }
                 catch (Exception ex)
                 {
@@ -103,9 +98,9 @@ namespace LightHeavyIndustry.Systems
                 }
             }
 
-            if (processedThisFrame > 0)
+            if (processedCount > 0)
             {
-                Mod.log.Info($"Processed {processedThisFrame} Light Industrial buildings this frame");
+                Mod.log.Info($"Processed {processedCount} newly completed Light Industry buildings");
             }
 
             buildings.Dispose();
@@ -143,101 +138,6 @@ namespace LightHeavyIndustry.Systems
             }
         }
 
-        private void ProcessLightIndustryBuilding(Entity buildingEntity)
-        {
-            // Hide chimneys and smoke effects (backup layer)
-            int hiddenCount = HideChimneysAndSmoke(buildingEntity);
-
-            if (hiddenCount > 0)
-            {
-                Mod.log.Info($"Processing Light Industrial building: {buildingEntity.Index} - Hidden {hiddenCount} chimney/smoke sub-objects");
-            }
-
-            // Set pollution values
-            SetLightIndustryPollution(buildingEntity);
-        }
-
-        private int HideChimneysAndSmoke(Entity buildingEntity)
-        {
-            if (!EntityManager.HasBuffer<Game.Objects.SubObject>(buildingEntity))
-                return 0;
-
-            var subObjects = EntityManager.GetBuffer<Game.Objects.SubObject>(buildingEntity);
-            int hiddenCount = 0;
-
-            Mod.log.Debug($"  Building has {subObjects.Length} sub-objects");
-
-            // Iterate through all sub-objects
-            for (int i = 0; i < subObjects.Length; i++)
-            {
-                var subObj = subObjects[i];
-                Entity subEntity = subObj.m_SubObject;
-
-                if (!EntityManager.Exists(subEntity))
-                    continue;
-
-                if (!EntityManager.HasComponent<PrefabRef>(subEntity))
-                    continue;
-
-                var subPrefabRef = EntityManager.GetComponentData<PrefabRef>(subEntity);
-
-                try
-                {
-                    var getPrefabMethod = _prefabSystem.GetType().GetMethod(
-                        "GetPrefab",
-                        BindingFlags.Instance | BindingFlags.Public,
-                        null,
-                        new Type[] { typeof(Entity) },
-                        null
-                    );
-
-                    if (getPrefabMethod == null) continue;
-
-                    var genericMethod = getPrefabMethod.MakeGenericMethod(typeof(PrefabBase));
-                    var prefab = genericMethod.Invoke(_prefabSystem, new object[] { subPrefabRef.m_Prefab }) as PrefabBase;
-
-                    if (prefab == null) continue;
-
-                    string prefabName = prefab.name;
-
-                    // Check if this is an effect to hide
-                    bool shouldHide = EffectNamesToRemove.Contains(prefabName);
-
-                    if (!shouldHide)
-                    {
-                        string lowerName = prefabName.ToLower();
-                        if (lowerName.Contains("chimney") ||
-                            lowerName.Contains("smoke") ||
-                            lowerName.Contains("steam") ||
-                            lowerName.Contains("vapor") ||
-                            lowerName.Contains("fire") ||
-                            lowerName.Contains("warninglight"))
-                        {
-                            shouldHide = true;
-                        }
-                    }
-
-                    if (shouldHide)
-                    {
-                        Mod.log.Info($"    Hiding: {prefabName}");
-
-                        // Add Deleted component to hide the sub-object
-                        if (!EntityManager.HasComponent<Deleted>(subEntity))
-                        {
-                            EntityManager.AddComponent<Deleted>(subEntity);
-                            hiddenCount++;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Mod.log.Warn($"    Error processing sub-object {i}: {ex.Message}");
-                }
-            }
-
-            return hiddenCount;
-        }
-
         private void SetLightIndustryPollution(Entity buildingEntity)
         {
             if (!EntityManager.HasComponent<PrefabRef>(buildingEntity))
@@ -250,17 +150,57 @@ namespace LightHeavyIndustry.Systems
 
             var pollutionData = EntityManager.GetComponentData<PollutionData>(prefabRef.m_Prefab);
 
-            Mod.log.Debug($"  Original pollution - Ground: {pollutionData.m_GroundPollution}, Air: {pollutionData.m_AirPollution}, Noise: {pollutionData.m_NoisePollution}");
+            // Set the pollution values using the constants
+            pollutionData.m_AirPollution = PollutionConstants.LIGHT_INDUSTRY_AIR;
+            pollutionData.m_GroundPollution = PollutionConstants.LIGHT_INDUSTRY_GROUND;
+            pollutionData.m_NoisePollution = PollutionConstants.LIGHT_INDUSTRY_NOISE;
 
-            if (!Mod.Settings.DryRun)
+            EntityManager.SetComponentData(prefabRef.m_Prefab, pollutionData);
+
+            Mod.log.Debug($"Set pollution on building {buildingEntity.Index}: Air={pollutionData.m_AirPollution}, Ground={pollutionData.m_GroundPollution}, Noise={pollutionData.m_NoisePollution}");
+        }
+
+        /// <summary>
+        /// Clean up processed building IDs that no longer exist to prevent memory leak
+        /// </summary>
+        private void CleanupOldEntries()
+        {
+            if (_processedBuildings.Count == 0)
+                return;
+
+            var toRemove = new List<int>();
+
+            foreach (var buildingIndex in _processedBuildings)
             {
-                pollutionData.m_AirPollution = 0;
-                pollutionData.m_GroundPollution = Mod.Settings.LightIndustryGroundPollution;
-                pollutionData.m_NoisePollution = 30;
+                // Check if entity still exists by trying to find it
+                // If we can't find it in reasonable time, assume it's been demolished
+                bool exists = false;
 
-                EntityManager.SetComponentData(prefabRef.m_Prefab, pollutionData);
+                var allBuildings = GetEntityQuery(ComponentType.ReadOnly<Building>()).ToEntityArray(Allocator.Temp);
+                foreach (var entity in allBuildings)
+                {
+                    if (entity.Index == buildingIndex && EntityManager.Exists(entity))
+                    {
+                        exists = true;
+                        break;
+                    }
+                }
+                allBuildings.Dispose();
 
-                Mod.log.Debug($"  Set Light Industry pollution - Ground: {pollutionData.m_GroundPollution}, Air: {pollutionData.m_AirPollution}, Noise: {pollutionData.m_NoisePollution}");
+                if (!exists)
+                {
+                    toRemove.Add(buildingIndex);
+                }
+            }
+
+            foreach (var index in toRemove)
+            {
+                _processedBuildings.Remove(index);
+            }
+
+            if (toRemove.Count > 0)
+            {
+                Mod.log.Info($"Cleaned up {toRemove.Count} demolished building entries from tracking");
             }
         }
     }

@@ -3,6 +3,7 @@ using Colossal.Logging;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
+using System.IO;
 
 namespace LightHeavyIndustry
 {
@@ -15,12 +16,39 @@ namespace LightHeavyIndustry
         internal static Setting Settings;
         private Setting m_Setting;
 
+        // CRITICAL: This is the hostname for the coui:// protocol
+        public const string HostName = "lightheavyindustry";
+
         public void OnLoad(UpdateSystem updateSystem)
         {
             log.Info(nameof(OnLoad));
 
             if (GameManager.instance.modManager.TryGetExecutableAsset(this, out var asset))
+            {
                 log.Info($"Current mod asset at {asset.path}");
+
+                /*
+                // Register UI resources for coui:// protocol
+                var uiFolder = Path.Combine(Path.GetDirectoryName(asset.path), "UI");
+                if (Directory.Exists(uiFolder))
+                {
+                    log.Info($"Registering UI resources from: {uiFolder}");
+                    try
+                    {
+                        GameManager.instance.userInterface.view.AddHostLocation(HostName, uiFolder, false);
+                        log.Info($"UI resources registered at coui://{HostName}/");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        log.Error($"Failed to register UI resources: {ex.Message}");
+                    }
+                }
+                else
+                {
+                    log.Warn($"UI folder not found at: {uiFolder}");
+                }
+                */
+            }
 
             // Initialize settings
             m_Setting = new Setting(this);
@@ -45,6 +73,7 @@ namespace LightHeavyIndustry
         public void OnDispose()
         {
             log.Info(nameof(OnDispose));
+
             if (m_Setting != null)
             {
                 m_Setting.UnregisterInOptionsUI();

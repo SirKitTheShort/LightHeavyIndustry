@@ -71,7 +71,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Folder Include="UI\Media\" />
+  		<None Include="UI\**\*">
+    			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  		</None>
 	</ItemGroup>
 
 </Project>

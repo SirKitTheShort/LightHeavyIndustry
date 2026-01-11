@@ -22,37 +22,89 @@ namespace LightHeavyIndustry
                 { m_Setting.GetSettingsLocaleID(), "Light/Heavy Industry" },
                 
                 // Sections
-                { m_Setting.GetOptionTabLocaleID(Setting.kSection), "Main" },
-                { m_Setting.GetOptionTabLocaleID(Setting.kPollutionSection), "Pollution Settings" },
-                { m_Setting.GetOptionTabLocaleID(Setting.kBlacklistSection), "Building Blacklist" },
+                { m_Setting.GetOptionTabLocaleID(Setting.kBlacklistSection), "Building Blacklists" },
+                { m_Setting.GetOptionTabLocaleID(Setting.kWhitelistSection), "Building Whitelists" },
                 { m_Setting.GetOptionTabLocaleID(Setting.kUninstallSection), "Safe Uninstall" },
                 
                 // Groups
-                { m_Setting.GetOptionGroupLocaleID("Options"), "General Options" },
-                { m_Setting.GetOptionGroupLocaleID("Values"), "Pollution Values" },
-                { m_Setting.GetOptionGroupLocaleID("Buildings"), "Excluded Buildings" },
+                { m_Setting.GetOptionGroupLocaleID("LightIndustryBlacklist"), "Light Industry Blacklist" },
+                { m_Setting.GetOptionGroupLocaleID("HeavyIndustryBlacklist"), "Heavy Industry Blacklist" },
+                { m_Setting.GetOptionGroupLocaleID("LightIndustryWhitelist"), "Light Industry Whitelist" },
+                { m_Setting.GetOptionGroupLocaleID("HeavyIndustryWhitelist"), "Heavy Industry Whitelist" },
                 { m_Setting.GetOptionGroupLocaleID("SafeUninstall"), "Before Uninstalling Mod" },
-                { m_Setting.GetOptionGroupLocaleID(Setting.kGroup), "Actions" },
                 
-                // Main settings
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.Enabled)), "Enable Mod" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.Enabled)), "Turns the mod on/off. Disable if you want to use vanilla industrial zones." },
+                // Light Industry Blacklist
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LightIndustryBlacklistDisplay)), "Current Blacklisted Buildings" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.LightIndustryBlacklistDisplay)), "Buildings currently excluded from Light Industry zones." },
 
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.DryRun)), "Dry Run Mode" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.DryRun)), "If enabled, the mod will only log what it would do without making any changes. Useful for testing." },
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SelectedLightBlacklistBuilding)), "Select Building" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.SelectedLightBlacklistBuilding)), "Choose a building to blacklist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.AddToLightBlacklist)), "Add to Blacklist" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.AddToLightBlacklist)), "Add selected building to blacklist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.RemoveLastLightBlacklist)), "Remove Last" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.RemoveLastLightBlacklist)), "Remove most recent entry." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ClearLightBlacklist)), "Clear All" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ClearLightBlacklist)), "Remove all blacklisted buildings." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ClearLightBlacklist)), "This will clear ALL blacklisted buildings!" },
                 
-                // Pollution settings
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LightIndustryGroundPollution)), "Light Industry Ground Pollution" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.LightIndustryGroundPollution)), "Ground pollution level for Light Industrial Manufacturing buildings. 0 = none (0/3), 30 = low (1/3), 60 = medium (2/3), 100 = high (3/3). Air pollution is always 0, noise is always 30 (1/3)." },
+                // Heavy Industry Blacklist
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.HeavyIndustryBlacklistDisplay)), "Current Blacklisted Buildings" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.HeavyIndustryBlacklistDisplay)), "Buildings currently excluded from Heavy Industry zones." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SelectedHeavyBlacklistBuilding)), "Select Building" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.SelectedHeavyBlacklistBuilding)), "Choose a building to blacklist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.AddToHeavyBlacklist)), "Add to Blacklist" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.AddToHeavyBlacklist)), "Add selected building to blacklist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.RemoveLastHeavyBlacklist)), "Remove Last" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.RemoveLastHeavyBlacklist)), "Remove most recent entry." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ClearHeavyBlacklist)), "Clear All" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ClearHeavyBlacklist)), "Remove all blacklisted buildings." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ClearHeavyBlacklist)), "This will clear ALL blacklisted buildings!" },
                 
-                // Blacklist settings
-                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LightIndustryBlacklistText)), "Additional Blacklisted Buildings" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.LightIndustryBlacklistText)), "Additional building prefab names (one per line) that should NOT appear in Light Industrial Manufacturing zones. This is for modded/custom assets only - vanilla buildings are already filtered in code. Use the CS2 Asset Editor to find building names. Lines starting with # are comments." },
+                // Light Industry Whitelist
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.LightIndustryWhitelistDisplay)), "Current Whitelisted Buildings" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.LightIndustryWhitelistDisplay)), "Buildings forced to appear in Light Industry zones." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SelectedLightWhitelistBuilding)), "Select Building" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.SelectedLightWhitelistBuilding)), "Choose a building to whitelist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.AddToLightWhitelist)), "Add to Whitelist" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.AddToLightWhitelist)), "Add selected building to whitelist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.RemoveLastLightWhitelist)), "Remove Last" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.RemoveLastLightWhitelist)), "Remove most recent entry." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ClearLightWhitelist)), "Clear All" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ClearLightWhitelist)), "Remove all whitelisted buildings." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ClearLightWhitelist)), "This will clear ALL whitelisted buildings!" },
+                
+                // Heavy Industry Whitelist
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.HeavyIndustryWhitelistDisplay)), "Current Whitelisted Buildings" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.HeavyIndustryWhitelistDisplay)), "Buildings forced to appear in Heavy Industry zones." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.SelectedHeavyWhitelistBuilding)), "Select Building" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.SelectedHeavyWhitelistBuilding)), "Choose a building to whitelist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.AddToHeavyWhitelist)), "Add to Whitelist" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.AddToHeavyWhitelist)), "Add selected building to whitelist." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.RemoveLastHeavyWhitelist)), "Remove Last" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.RemoveLastHeavyWhitelist)), "Remove most recent entry." },
+
+                { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ClearHeavyWhitelist)), "Clear All" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ClearHeavyWhitelist)), "Remove all whitelisted buildings." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ClearHeavyWhitelist)), "This will clear ALL whitelisted buildings!" },
                 
                 // Uninstall settings
                 { m_Setting.GetOptionLabelLocaleID(nameof(Setting.ConvertToVanillaZones)), "Convert All Buildings to Vanilla" },
-                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ConvertToVanillaZones)), "Click this button BEFORE uninstalling the mod. This will convert all Light/Heavy Industrial buildings back to vanilla Industrial Manufacturing buildings, preventing them from disappearing when you remove the mod." },
-                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ConvertToVanillaZones)), "This will convert ALL Light/Heavy Industrial buildings to vanilla. Make sure this is what you want before proceeding!" },
+                { m_Setting.GetOptionDescLocaleID(nameof(Setting.ConvertToVanillaZones)), "Click BEFORE uninstalling to convert all Light/Heavy Industrial buildings back to vanilla." },
+                { m_Setting.GetOptionWarningLocaleID(nameof(Setting.ConvertToVanillaZones)), "This will convert ALL Light/Heavy Industrial buildings to vanilla!" },
             };
         }
 

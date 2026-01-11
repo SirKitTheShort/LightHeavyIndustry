@@ -12,6 +12,17 @@ using UnityEngine;
 namespace LightHeavyIndustry.Systems
 {
     /// <summary>
+    /// Pollution constants for Light Industry - easily adjustable
+    /// </summary>
+    public static class PollutionConstants
+    {
+        // Light Industry Pollution Values
+        public const int LIGHT_INDUSTRY_AIR = 0;
+        public const int LIGHT_INDUSTRY_GROUND = 15;
+        public const int LIGHT_INDUSTRY_NOISE = 30;
+    }
+
+    /// <summary>
     /// Creates Light Industry and Heavy Industry zone types
     /// Light = no chimneys/smoke, minimal pollution, lower profit
     /// Heavy = exact same as vanilla Industrial Manufacturing
@@ -44,22 +55,34 @@ namespace LightHeavyIndustry.Systems
             "IndustrialChimneySmall03 Oil", "IndustrialChimneySmall04 Ore",
             "IndustrialChimneySmallRandom01",
             
-            // Decoration Props
+            // Decoration Props - EXACT names only
             "IndustrialManufacturingDecoration03_2x2 Oil",
             "IndustrialManufacturingDecoration04_2x2 Ore",
             "IndustrialManufacturingDecoration04_2x4 Ore",
+            "IndustrialManufacturingDecorationRandom01_2x2",
+            "IndustrialManufacturingDecorationRandom01_2x4",
             
             // Warning Lights
             "WarningLight01", "WarningLight02", "WarningLightRandom01"
         };
 
         // Hardcoded blacklist of building prefabs that shouldn't appear in Light Industry
-        private static readonly HashSet<string> HardcodedBlacklist = new()
+        // TODO: Fill this with heavy-looking industrial buildings using CS2 Asset Editor
+        private static readonly HashSet<string> HardcodedLightBlacklist = new()
         {
             // Add building names here from CS2 Asset Editor
+            "LightIndustrial_IndustrialStorageOre01_L1_6x6",
+            "LightIndustrial_IndustrialStorageOre01_L2_6x6",
+            "LightIndustrial_IndustrialStorageOre01_L3_6x6",
+            "LightIndustrial_IndustrialStorageOre01_L4_6x6",
+            "LightIndustrial_IndustrialStorageOre01_L5_6x6"
         };
 
-        private HashSet<string> _lightIndustryBlacklist = new();
+        // Hardcoded blacklist for Heavy Industry
+        private static readonly HashSet<string> HardcodedHeavyBlacklist = new()
+        {
+            // Add building names here from CS2 Asset Editor if needed
+        };
 
         private bool _zonesCreated = false;
 
@@ -86,9 +109,6 @@ namespace LightHeavyIndustry.Systems
                 Mod.log.Error("m_Prefabs is null!");
                 return;
             }
-
-            // Load blacklist from settings
-            LoadBlacklist();
 
             Mod.log.Info("LightHeavyIndustryZoningSystem created successfully");
         }
@@ -131,12 +151,12 @@ namespace LightHeavyIndustry.Systems
                     _prefabSystem.AddPrefab(_lightIndustryZone);
                     Mod.log.Info($"Created Light Industry zone: {_lightIndustryZone.name}");
 
-                    // Clone buildings for Light Industry (filtered by blacklist, chimneys removed from prefabs)
+                    // Clone buildings for Light Industry (filtered by blacklist/whitelist, chimneys removed from prefabs)
                     var lightBuildings = CloneBuildingsForZone(
                         industrialBuildings,
                         _lightIndustryZone,
                         "LightIndustrial",
-                        applyBlacklist: true,
+                        isLightIndustry: true,
                         removeChimneys: true);
 
                     foreach (var building in lightBuildings)
@@ -145,21 +165,27 @@ namespace LightHeavyIndustry.Systems
                     }
 
                     Mod.log.Info($"Cloned {lightBuildings.Count} buildings for Light Industrial Manufacturing");
+
+                    // Populate dropdown with building names for settings
+                    LightHeavyIndustry.Setting.AvailableLightBuildingNames = industrialBuildings
+                        .Select(b => b.name)
+                        .OrderBy(n => n)
+                        .ToList();
                 }
 
-                // Create Heavy Industry zone (same as vanilla, just renamed)
+                // Create Heavy Industry zone (bright orange)
                 _heavyIndustryZone = CreateHeavyIndustryZone(_vanillaIndustrialZone);
                 if (_heavyIndustryZone != null)
                 {
                     _prefabSystem.AddPrefab(_heavyIndustryZone);
                     Mod.log.Info($"Created Heavy Industry zone: {_heavyIndustryZone.name}");
 
-                    // Clone all buildings for Heavy Industry (no blacklist, keep chimneys)
+                    // Clone all buildings for Heavy Industry (filtered by blacklist/whitelist, keep chimneys)
                     var heavyBuildings = CloneBuildingsForZone(
                         industrialBuildings,
                         _heavyIndustryZone,
                         "HeavyIndustrial",
-                        applyBlacklist: false,
+                        isLightIndustry: false,
                         removeChimneys: false);
 
                     foreach (var building in heavyBuildings)
@@ -168,6 +194,12 @@ namespace LightHeavyIndustry.Systems
                     }
 
                     Mod.log.Info($"Cloned {heavyBuildings.Count} buildings for Heavy Industrial Manufacturing");
+
+                    // Populate dropdown with building names for settings (same as light industry)
+                    LightHeavyIndustry.Setting.AvailableHeavyBuildingNames = industrialBuildings
+                        .Select(b => b.name)
+                        .OrderBy(n => n)
+                        .ToList();
                 }
 
                 _zonesCreated = true;
@@ -183,21 +215,6 @@ namespace LightHeavyIndustry.Systems
             }
         }
 
-        private void LoadBlacklist()
-        {
-            _lightIndustryBlacklist = new HashSet<string>(HardcodedBlacklist);
-
-            if (Mod.Settings?.LightIndustryBlacklist != null)
-            {
-                foreach (var item in Mod.Settings.LightIndustryBlacklist)
-                {
-                    _lightIndustryBlacklist.Add(item);
-                }
-            }
-
-            Mod.log.Info($"Loaded {_lightIndustryBlacklist.Count} blacklisted buildings");
-        }
-
         private ZonePrefab CreateLightIndustryZone(ZonePrefab sourceZone)
         {
             var zone = sourceZone.Clone("LightIndustrialManufacturing") as ZonePrefab;
@@ -210,11 +227,26 @@ namespace LightHeavyIndustry.Systems
 
             Mod.log.Info($"Light Industrial Manufacturing zone color: {zone.m_Edge} (vanilla yellow)");
 
-            // Set custom icon (requires icon file in mod's UI/Media folder)
+            // Set pollution on the ZONE itself
+            var zonePollution = zone.GetComponent<ZonePollution>();
+            if (zonePollution != null)
+            {
+                zonePollution.m_AirPollution = PollutionConstants.LIGHT_INDUSTRY_AIR;
+                zonePollution.m_GroundPollution = PollutionConstants.LIGHT_INDUSTRY_GROUND;
+                zonePollution.m_NoisePollution = PollutionConstants.LIGHT_INDUSTRY_NOISE;
+                Mod.log.Info($"Set zone pollution: Air={zonePollution.m_AirPollution}, Ground={zonePollution.m_GroundPollution}, Noise={zonePollution.m_NoisePollution}");
+            }
+            else
+            {
+                Mod.log.Warn("Light Industry zone has no ZonePollution component!");
+            }
+
             var uiObj = zone.GetComponent<UIObject>();
             if (uiObj != null)
             {
-                uiObj.m_Icon = "coui://LightHeavyIndustry/UI/Media/LightIndustry.svg";
+                // Set custom icon using coui:// protocol with registered hostname
+                uiObj.m_Icon = $"coui://{LightHeavyIndustry.Mod.HostName}/LightIndustry.svg";
+                Mod.log.Info($"Set Light Industry icon to: {uiObj.m_Icon}");
             }
 
             return zone;
@@ -233,13 +265,13 @@ namespace LightHeavyIndustry.Systems
             zone.m_Edge = new Color(1.0f, 0.5f, 0.0f);
             Mod.log.Info($"Heavy Industrial Manufacturing zone color: {zone.m_Edge} (bright orange)");
 
-            // Set custom icon (requires icon file in mod's UI/Media folder)
-            // Uncomment these lines if you add a HeavyIndustry.svg icon:
-            // var uiObj = zone.GetComponent<UIObject>();
-            // if (uiObj != null)
-            // {
-            //     uiObj.m_Icon = "coui://LightHeavyIndustry/HeavyIndustry.svg";
-            // }
+            var uiObj = zone.GetComponent<UIObject>();
+            if (uiObj != null)
+            {
+                // Set custom icon using coui:// protocol with registered hostname
+                uiObj.m_Icon = $"coui://{LightHeavyIndustry.Mod.HostName}/HeavyIndustry.svg";
+                Mod.log.Info($"Set Heavy Industry icon to: {uiObj.m_Icon}");
+            }
 
             return zone;
         }
@@ -248,22 +280,42 @@ namespace LightHeavyIndustry.Systems
             BuildingPrefab[] sourceBuildings,
             ZonePrefab targetZone,
             string prefix,
-            bool applyBlacklist,
+            bool isLightIndustry,
             bool removeChimneys)
         {
             var clonedBuildings = new List<BuildingPrefab>();
             int blacklistedCount = 0;
+            int whitelistedCount = 0;
             int totalChimneysRemoved = 0;
+
+            // Get appropriate blacklist and whitelist
+            var hardcodedBlacklist = isLightIndustry ? HardcodedLightBlacklist : HardcodedHeavyBlacklist;
+            var userBlacklist = isLightIndustry ? Mod.Settings.LightIndustryBlacklist : Mod.Settings.HeavyIndustryBlacklist;
+            var userWhitelist = isLightIndustry ? Mod.Settings.LightIndustryWhitelist : Mod.Settings.HeavyIndustryWhitelist;
+
+            // Combine hardcoded and user blacklists
+            var combinedBlacklist = new HashSet<string>(hardcodedBlacklist);
+            foreach (var item in userBlacklist)
+            {
+                combinedBlacklist.Add(item);
+            }
 
             foreach (var sourceBuilding in sourceBuildings)
             {
                 try
                 {
-                    // Check blacklist for Light Industry
-                    if (applyBlacklist && _lightIndustryBlacklist.Contains(sourceBuilding.name))
+                    // Check whitelist first - whitelist overrides blacklist
+                    bool isWhitelisted = userWhitelist.Contains(sourceBuilding.name);
+
+                    if (!isWhitelisted && combinedBlacklist.Contains(sourceBuilding.name))
                     {
                         blacklistedCount++;
                         continue;
+                    }
+
+                    if (isWhitelisted)
+                    {
+                        whitelistedCount++;
                     }
 
                     var newName = $"{prefix}_{sourceBuilding.name}";
@@ -302,9 +354,14 @@ namespace LightHeavyIndustry.Systems
                 Mod.log.Info($"Excluded {blacklistedCount} blacklisted buildings");
             }
 
+            if (whitelistedCount > 0)
+            {
+                Mod.log.Info($"Force-included {whitelistedCount} whitelisted buildings");
+            }
+
             if (totalChimneysRemoved > 0)
             {
-                Mod.log.Info($"Removed {totalChimneysRemoved} chimney/smoke components from Light Industry building prefabs");
+                Mod.log.Info($"Removed {totalChimneysRemoved} chimney/smoke/decoration components from building prefabs");
             }
 
             return clonedBuildings;
@@ -312,10 +369,124 @@ namespace LightHeavyIndustry.Systems
 
         private int RemoveChimneysFromPrefabComponents(BuildingPrefab building)
         {
-            // NOTE: This approach doesn't work in CS2 - prefab modifications don't prevent spawning
-            // We've moved to a continuous removal approach in LightIndustryBuildingProcessorSystem instead
-            // Keeping this for reference but it won't be called
-            return 0;
+            int removedCount = 0;
+
+            try
+            {
+                // Get all components from the building prefab
+                var componentsList = new List<ComponentBase>();
+                building.GetComponents(componentsList);
+
+                Mod.log.Debug($"Building {building.name} has {componentsList.Count} components");
+
+                // Find and modify ObjectSubObjects components
+                foreach (var component in componentsList)
+                {
+                    // Check if this is an ObjectSubObjects component
+                    if (component is ObjectSubObjects subObjectsComponent)
+                    {
+                        Mod.log.Debug($"  Found ObjectSubObjects component with {subObjectsComponent.m_SubObjects?.Length ?? 0} sub-objects");
+
+                        // Get the sub-objects array
+                        var subObjects = subObjectsComponent.m_SubObjects;
+                        if (subObjects != null && subObjects.Length > 0)
+                        {
+                            var filteredSubObjects = new List<ObjectSubObjectInfo>();
+
+                            foreach (var subObjInfo in subObjects)
+                            {
+                                // Check if m_Object exists and get its name
+                                if (subObjInfo.m_Object != null)
+                                {
+                                    string prefabName = subObjInfo.m_Object.name;
+                                    bool shouldRemove = false;
+
+                                    // Log ALL sub-objects for debugging
+                                    Mod.log.Debug($"    Checking sub-object: {prefabName}");
+
+                                    // EXACT MATCH CHECK for effect names
+                                    if (EffectNamesToRemove.Contains(prefabName))
+                                    {
+                                        shouldRemove = true;
+                                        Mod.log.Debug($"    -> Matched in EffectNamesToRemove");
+                                    }
+
+                                    // SUBSTRING CHECK for chimneys, smoke, fire, lights (NOT decorations)
+                                    if (!shouldRemove)
+                                    {
+                                        string lowerName = prefabName.ToLower();
+
+                                        if (lowerName.Contains("chimney"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'chimney'");
+                                        }
+                                        else if (lowerName.Contains("smoke"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'smoke'");
+                                        }
+                                        else if (lowerName.Contains("steam"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'steam'");
+                                        }
+                                        else if (lowerName.Contains("vapor"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'vapor'");
+                                        }
+                                        else if (lowerName.Contains("fire"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'fire'");
+                                        }
+                                        else if (lowerName.Contains("warninglight"))
+                                        {
+                                            shouldRemove = true;
+                                            Mod.log.Debug($"    -> Contains 'warninglight'");
+                                        }
+                                    }
+
+                                    if (shouldRemove)
+                                    {
+                                        Mod.log.Info($"    REMOVING SubObject: {prefabName} from {building.name}");
+                                        removedCount++;
+                                    }
+                                    else
+                                    {
+                                        // Keep this sub-object
+                                        filteredSubObjects.Add(subObjInfo);
+                                    }
+                                }
+                                else
+                                {
+                                    // Keep sub-objects with null references (shouldn't happen but be safe)
+                                    filteredSubObjects.Add(subObjInfo);
+                                }
+                            }
+
+                            // Update the component with filtered sub-objects
+                            if (filteredSubObjects.Count < subObjects.Length)
+                            {
+                                subObjectsComponent.m_SubObjects = filteredSubObjects.ToArray();
+                                Mod.log.Info($"  Successfully filtered {removedCount} sub-objects from component in {building.name}");
+                            }
+                        }
+                    }
+                }
+
+                if (removedCount > 0)
+                {
+                    Mod.log.Info($"TOTAL: Removed {removedCount} chimney/decoration components from prefab {building.name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Mod.log.Error(ex, $"Error removing chimneys from prefab {building.name}");
+            }
+
+            return removedCount;
         }
 
         public bool IsLightIndustryZone(ZonePrefab zone)
