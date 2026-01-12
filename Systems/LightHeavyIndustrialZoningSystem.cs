@@ -18,7 +18,7 @@ namespace LightHeavyIndustry.Systems
     {
         // Light Industry Pollution Values
         public const int LIGHT_INDUSTRY_AIR = 0;
-        public const int LIGHT_INDUSTRY_GROUND = 15;
+        public const int LIGHT_INDUSTRY_GROUND = 10;
         public const int LIGHT_INDUSTRY_NOISE = 30;
     }
 
@@ -67,10 +67,8 @@ namespace LightHeavyIndustry.Systems
         };
 
         // Hardcoded blacklist of building prefabs that shouldn't appear in Light Industry
-        // TODO: Fill this with heavy-looking industrial buildings using CS2 Asset Editor
         private static readonly HashSet<string> HardcodedLightBlacklist = new()
         {
-            // Add building names here from CS2 Asset Editor
             "LightIndustrial_IndustrialStorageOre01_L1_6x6",
             "LightIndustrial_IndustrialStorageOre01_L2_6x6",
             "LightIndustrial_IndustrialStorageOre01_L3_6x6",
@@ -165,12 +163,6 @@ namespace LightHeavyIndustry.Systems
                     }
 
                     Mod.log.Info($"Cloned {lightBuildings.Count} buildings for Light Industrial Manufacturing");
-
-                    // Populate dropdown with building names for settings
-                    LightHeavyIndustry.Setting.AvailableLightBuildingNames = industrialBuildings
-                        .Select(b => b.name)
-                        .OrderBy(n => n)
-                        .ToList();
                 }
 
                 // Create Heavy Industry zone (bright orange)
@@ -194,12 +186,6 @@ namespace LightHeavyIndustry.Systems
                     }
 
                     Mod.log.Info($"Cloned {heavyBuildings.Count} buildings for Heavy Industrial Manufacturing");
-
-                    // Populate dropdown with building names for settings (same as light industry)
-                    LightHeavyIndustry.Setting.AvailableHeavyBuildingNames = industrialBuildings
-                        .Select(b => b.name)
-                        .OrderBy(n => n)
-                        .ToList();
                 }
 
                 _zonesCreated = true;
@@ -241,11 +227,11 @@ namespace LightHeavyIndustry.Systems
                 Mod.log.Warn("Light Industry zone has no ZonePollution component!");
             }
 
+            // Set custom icon using coui:// protocol
             var uiObj = zone.GetComponent<UIObject>();
             if (uiObj != null)
             {
-                // Set custom icon using coui:// protocol with registered hostname
-                uiObj.m_Icon = $"coui://{LightHeavyIndustry.Mod.HostName}/LightIndustry.svg";
+                uiObj.m_Icon = $"coui://{Mod.HostName}/LightIndustry.svg";
                 Mod.log.Info($"Set Light Industry icon to: {uiObj.m_Icon}");
             }
 
@@ -265,11 +251,11 @@ namespace LightHeavyIndustry.Systems
             zone.m_Edge = new Color(1.0f, 0.5f, 0.0f);
             Mod.log.Info($"Heavy Industrial Manufacturing zone color: {zone.m_Edge} (bright orange)");
 
+            // Set custom icon using coui:// protocol
             var uiObj = zone.GetComponent<UIObject>();
             if (uiObj != null)
             {
-                // Set custom icon using coui:// protocol with registered hostname
-                uiObj.m_Icon = $"coui://{LightHeavyIndustry.Mod.HostName}/HeavyIndustry.svg";
+                uiObj.m_Icon = $"coui://{Mod.HostName}/HeavyIndustry.svg";
                 Mod.log.Info($"Set Heavy Industry icon to: {uiObj.m_Icon}");
             }
 
@@ -377,17 +363,11 @@ namespace LightHeavyIndustry.Systems
                 var componentsList = new List<ComponentBase>();
                 building.GetComponents(componentsList);
 
-                Mod.log.Debug($"Building {building.name} has {componentsList.Count} components");
-
                 // Find and modify ObjectSubObjects components
                 foreach (var component in componentsList)
                 {
-                    // Check if this is an ObjectSubObjects component
                     if (component is ObjectSubObjects subObjectsComponent)
                     {
-                        Mod.log.Debug($"  Found ObjectSubObjects component with {subObjectsComponent.m_SubObjects?.Length ?? 0} sub-objects");
-
-                        // Get the sub-objects array
                         var subObjects = subObjectsComponent.m_SubObjects;
                         if (subObjects != null && subObjects.Length > 0)
                         {
@@ -395,20 +375,15 @@ namespace LightHeavyIndustry.Systems
 
                             foreach (var subObjInfo in subObjects)
                             {
-                                // Check if m_Object exists and get its name
                                 if (subObjInfo.m_Object != null)
                                 {
                                     string prefabName = subObjInfo.m_Object.name;
                                     bool shouldRemove = false;
 
-                                    // Log ALL sub-objects for debugging
-                                    Mod.log.Debug($"    Checking sub-object: {prefabName}");
-
                                     // EXACT MATCH CHECK for effect names
                                     if (EffectNamesToRemove.Contains(prefabName))
                                     {
                                         shouldRemove = true;
-                                        Mod.log.Debug($"    -> Matched in EffectNamesToRemove");
                                     }
 
                                     // SUBSTRING CHECK for chimneys, smoke, fire, lights (NOT decorations)
@@ -416,52 +391,28 @@ namespace LightHeavyIndustry.Systems
                                     {
                                         string lowerName = prefabName.ToLower();
 
-                                        if (lowerName.Contains("chimney"))
+                                        if (lowerName.Contains("chimney") ||
+                                            lowerName.Contains("smoke") ||
+                                            lowerName.Contains("steam") ||
+                                            lowerName.Contains("vapor") ||
+                                            lowerName.Contains("fire") ||
+                                            lowerName.Contains("warninglight"))
                                         {
                                             shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'chimney'");
-                                        }
-                                        else if (lowerName.Contains("smoke"))
-                                        {
-                                            shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'smoke'");
-                                        }
-                                        else if (lowerName.Contains("steam"))
-                                        {
-                                            shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'steam'");
-                                        }
-                                        else if (lowerName.Contains("vapor"))
-                                        {
-                                            shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'vapor'");
-                                        }
-                                        else if (lowerName.Contains("fire"))
-                                        {
-                                            shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'fire'");
-                                        }
-                                        else if (lowerName.Contains("warninglight"))
-                                        {
-                                            shouldRemove = true;
-                                            Mod.log.Debug($"    -> Contains 'warninglight'");
                                         }
                                     }
 
                                     if (shouldRemove)
                                     {
-                                        Mod.log.Info($"    REMOVING SubObject: {prefabName} from {building.name}");
                                         removedCount++;
                                     }
                                     else
                                     {
-                                        // Keep this sub-object
                                         filteredSubObjects.Add(subObjInfo);
                                     }
                                 }
                                 else
                                 {
-                                    // Keep sub-objects with null references (shouldn't happen but be safe)
                                     filteredSubObjects.Add(subObjInfo);
                                 }
                             }
@@ -470,15 +421,9 @@ namespace LightHeavyIndustry.Systems
                             if (filteredSubObjects.Count < subObjects.Length)
                             {
                                 subObjectsComponent.m_SubObjects = filteredSubObjects.ToArray();
-                                Mod.log.Info($"  Successfully filtered {removedCount} sub-objects from component in {building.name}");
                             }
                         }
                     }
-                }
-
-                if (removedCount > 0)
-                {
-                    Mod.log.Info($"TOTAL: Removed {removedCount} chimney/decoration components from prefab {building.name}");
                 }
             }
             catch (Exception ex)

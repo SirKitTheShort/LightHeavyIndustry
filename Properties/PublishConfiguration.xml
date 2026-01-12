@@ -1,37 +1,62 @@
 ﻿<Publish>
-	<!--Id must be set in order to update existed mod. it is not required for publishing mod for the first time-->
-	<ModId Value="" />
-	<!--Name of the mod to display to players-->
-	<DisplayName Value="LightHeavyIndustry" />
-	<!--Short description of the mod-->
-	<ShortDescription Value="Adds Light and Heavy Industry zoning, separating low-impact industry from high-pollution factories." />
-	<!--Long description of the mod. Single line or multi line. Supports minimal markdown subset-->
-	<!--LongDescription Value="Introduces two industrial zoning types: Light Industry and Heavy Industry. Light Industry produces less noise and pollution but is less profitable, allowing cleaner industrial areas near the city, while Heavy Industry retains standard industrial behavior." /-->
+	<ModId Value="130356" />
+	<DisplayName Value="Light Industry Zoning" />
+	<ShortDescription Value="Adds Light Industrial Zoning, separating low-impact industry from high-pollution factories." />
+
 	<LongDescription>
-Introduces two industrial zoning types: Light Industry and Heavy Industry. Light Industry produces less noise and pollution but is less profitable, allowing cleaner industrial areas near the city, while Heavy Industry retains standard industrial behavior.
+		<![CDATA[
+## Light Industry Zoning (WIP)
+
+Introducing a new zoning type: **Light Industry**.
+
+Light Industry produces less noise and pollution, allowing industrial areas to coexist much easier with residential areas. Light industry will also visually appear less pollutive, such that they do not spawn with chimneys or smoke/steam effects. This is much more realistic, as most industry in real life is done in unassuming warehouse-looking buildings without giant smokestacks.
+
+### Current values (assuming > 2x2)
+- Ground Pollution: 15/100 (1/3)
+- Air Pollution: 0/100 (0/3)
+- Noise Pollution: 30/100 (1/3)
+
+### Related mods / design philosophy
+I am aware of:
+- "Clean Industry Zones" by Mimonsi
+- "Specialized Industry Zones" by DillN2
+
+This mod aims to feel as **vanilla** as possible, be future-proof for new vanilla assets, and be safe to remove from saves. It also avoids relying on a separate asset pack by modifying vanilla industry prefabs at runtime.
+
+### What is done
+- Pollution levels set to the values above
+- Assets spawn without chimneys/smokestacks and smoke/steam VFX
+- Fixed chimneys reappearing after a while
+- Added a Heavy Industry zoning type (currently behaves like vanilla)
+- Added a settings dropdown for blacklisting overly industrial-looking assets (WIP: names not yet shown)
+
+### Problems / to-do
+- Decide whether Heavy Industry zoning is worth keeping
+- Add a downside (eg reduced profitability) so Light Industry is balanced
+- Split goods production (Light: complex goods; Heavy: raw materials) similar to what other mods have done
+- Fix the UI zoning image
+]]>
 	</LongDescription>
-	<!--Thumbnail-->
+
 	<Thumbnail Value="Properties/Thumbnail.png" />
-	<!--Screenshot, can be set multiple times-->
-	<Screenshot Value="" />
-	<!--Tag, can be set multiple times-->
-	<Tag Value="" />
-	<!--Link to the forum post where the mod can be discussed-->
-	<ForumLink Value="" />
-	<!--Version of the mod-->
-	<ModVersion Value="1.0" />
-	<!--Recommended version of the base game to use the mod-->
-	<GameVersion Value="1.0.*" />
-	<!--Dependency for the mod, can be set multiple times-->
-	<Dependency Id="" />
-	<!--Required DLC, can be set multiple times. Supported values are "Landmark Buildings", "San Fransisco Set", "Beach Properties", "Urban Promenades", "Modern Architecture"-->
-	<RequiredDLC Value="" />
-	<!--Change log for new version. Single line or multi line. Supports minimal markdown subset-->
-	<ChangeLog Value="" />
-	<!--<ChangeLog>
-	</ChangeLog>-->
-	<!--External link, can be set multiple times. supported types are "discord", "github", "youtube", "twitch", "x", "paypal", "patreon", "buymeacoffee", "kofi", "crowdin", "gitlab", "gofundme"-->
-	<ExternalLink Type="" Url="" />
-	<!--Supported values Public, Private, Unlisted-->
+
+	<!-- Add screenshots only if the file definitely exists at this path -->
+	<!-- <Screenshot Value="Properties/LightIndustry.png" /> -->
+
+	<Tag Value="Code Mod" />
+	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/light-industry.1892940/" />
+
+	<ModVersion Value="1.0.2" />
+	<GameVersion Value="1.5.*" />
+
+	<ChangeLog>
+		<![CDATA[
+- Fixed reappearing chimney issue
+- Adjusted ground pollution value
+- Settings cleanup (WIP)
+]]>
+	</ChangeLog>
+
+	<ExternalLink Type="github" Url="https://github.com/SirKitTheShort/LightHeavyIndustry" />
 	<AccessLevel Value="Public" />
 </Publish>

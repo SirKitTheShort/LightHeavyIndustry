@@ -1,5 +1,6 @@
 ﻿using Colossal.IO.AssetDatabase;
 using Colossal.Logging;
+using Colossal.UI;
 using Game;
 using Game.Modding;
 using Game.SceneFlow;
@@ -27,15 +28,16 @@ namespace LightHeavyIndustry
             {
                 log.Info($"Current mod asset at {asset.path}");
 
-                /*
                 // Register UI resources for coui:// protocol
-                var uiFolder = Path.Combine(Path.GetDirectoryName(asset.path), "UI");
-                if (Directory.Exists(uiFolder))
+                var modPath = Path.GetDirectoryName(asset.GetMeta().path);
+                var uiPath = Path.Combine(modPath, "UI");
+
+                if (Directory.Exists(uiPath))
                 {
-                    log.Info($"Registering UI resources from: {uiFolder}");
+                    log.Info($"Registering UI resources from: {uiPath}");
                     try
                     {
-                        GameManager.instance.userInterface.view.AddHostLocation(HostName, uiFolder, false);
+                        UIManager.defaultUISystem.AddHostLocation(HostName, uiPath);
                         log.Info($"UI resources registered at coui://{HostName}/");
                     }
                     catch (System.Exception ex)
@@ -45,9 +47,8 @@ namespace LightHeavyIndustry
                 }
                 else
                 {
-                    log.Warn($"UI folder not found at: {uiFolder}");
+                    log.Warn($"UI folder not found at: {uiPath}");
                 }
-                */
             }
 
             // Initialize settings
@@ -73,7 +74,6 @@ namespace LightHeavyIndustry
         public void OnDispose()
         {
             log.Info(nameof(OnDispose));
-
             if (m_Setting != null)
             {
                 m_Setting.UnregisterInOptionsUI();
