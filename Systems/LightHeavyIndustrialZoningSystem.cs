@@ -18,7 +18,7 @@ namespace LightHeavyIndustry.Systems
     {
         // Light Industry Pollution Values
         public const int LIGHT_INDUSTRY_AIR = 0;
-        public const int LIGHT_INDUSTRY_GROUND = 10;
+        public const int LIGHT_INDUSTRY_GROUND = 5;
         public const int LIGHT_INDUSTRY_NOISE = 30;
     }
 
