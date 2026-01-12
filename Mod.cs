@@ -51,14 +51,15 @@ namespace LightHeavyIndustry
                 }
             }
 
-            // Initialize settings
+            // Initialize settings (but DON'T register in UI yet - wait for buildings to load)
             m_Setting = new Setting(this);
             Settings = m_Setting;
-            m_Setting.RegisterInOptionsUI();
+
+            // Load saved settings from disk
             GameManager.instance.localizationManager.AddSource("en-US", new LocaleEN(m_Setting));
             AssetDatabase.global.LoadSettings(nameof(LightHeavyIndustry), m_Setting, new Setting(this));
 
-            // Register the zoning system FIRST (it creates the zones)
+            // Register the zoning system FIRST (it creates the zones and populates dropdowns)
             log.Info("Registering LightHeavyIndustryZoningSystem...");
             updateSystem.UpdateBefore<LightHeavyIndustry.Systems.LightHeavyIndustryZoningSystem, Game.Prefabs.PrefabSystem>(SystemUpdatePhase.MainLoop);
 
@@ -69,6 +70,10 @@ namespace LightHeavyIndustry
             // Register the zone conversion system (for safe uninstall)
             log.Info("Registering ZoneConversionSystem...");
             updateSystem.UpdateAt<LightHeavyIndustry.Systems.ZoneConversionSystem>(SystemUpdatePhase.GameSimulation);
+
+            // IMPORTANT: Register settings in UI AFTER systems are set up
+            // The zoning system will signal when dropdowns are ready
+            log.Info("Settings loaded - will register UI after building list is populated");
         }
 
         public void OnDispose()

@@ -9,11 +9,12 @@ using System.Linq;
 namespace LightHeavyIndustry
 {
     [FileLocation(nameof(LightHeavyIndustry))]
-    [SettingsUIGroupOrder(kBlacklistSection, kWhitelistSection, kUninstallSection)]
+    [SettingsUIGroupOrder(kBlacklistSection, kWhitelistSection, kManagementSection, kUninstallSection)]
     public class Setting : ModSetting
     {
         public const string kBlacklistSection = "Blacklist";
         public const string kWhitelistSection = "Whitelist";
+        public const string kManagementSection = "Management";
         public const string kUninstallSection = "Uninstall";
 
         public Setting(IMod mod) : base(mod)
@@ -34,7 +35,7 @@ namespace LightHeavyIndustry
 
         // ===== LIGHT INDUSTRY BLACKLIST =====
 
-        [SettingsUISection(kBlacklistSection, "LightIndustryBlacklist")]
+        [SettingsUIHidden]
         public List<string> LightIndustryBlacklist { get; set; } = new();
 
         [SettingsUISection(kBlacklistSection, "LightIndustryBlacklist")]
@@ -43,7 +44,7 @@ namespace LightHeavyIndustry
         {
             get => LightIndustryBlacklist.Count > 0
                 ? string.Join("\n", LightIndustryBlacklist)
-                : "# No buildings blacklisted";
+                : "# No buildings blacklisted for Light Industry";
             set { }
         }
 
@@ -53,10 +54,11 @@ namespace LightHeavyIndustry
 
         [SettingsUIButton]
         [SettingsUISection(kBlacklistSection, "LightIndustryBlacklist")]
-        public bool AddToLightBlacklist
+        public bool AddLightBlacklist
         {
             set
             {
+                Mod.log.Info($"AddLightBlacklist button clicked! Selected: {SelectedLightBlacklistBuilding}");
                 if (value && !string.IsNullOrWhiteSpace(SelectedLightBlacklistBuilding) &&
                     SelectedLightBlacklistBuilding != "None")
                 {
@@ -66,52 +68,47 @@ namespace LightHeavyIndustry
                         Mod.log.Info($"Added to Light Industry blacklist: {SelectedLightBlacklistBuilding}");
                         ApplyAndSave();
                     }
+                    else
+                    {
+                        Mod.log.Info($"Building already in blacklist: {SelectedLightBlacklistBuilding}");
+                    }
                 }
-            }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUISection(kBlacklistSection, "LightIndustryBlacklist")]
-        public bool RemoveLastLightBlacklist
-        {
-            set
-            {
-                if (value && LightIndustryBlacklist.Count > 0)
+                else
                 {
-                    var removed = LightIndustryBlacklist[LightIndustryBlacklist.Count - 1];
-                    LightIndustryBlacklist.RemoveAt(LightIndustryBlacklist.Count - 1);
-                    Mod.log.Info($"Removed from Light Industry blacklist: {removed}");
-                    ApplyAndSave();
+                    Mod.log.Info($"Cannot add - no valid building selected");
                 }
             }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUIConfirmation]
-        [SettingsUISection(kBlacklistSection, "LightIndustryBlacklist")]
-        public bool ClearLightBlacklist
-        {
-            set
-            {
-                if (value)
-                {
-                    LightIndustryBlacklist.Clear();
-                    Mod.log.Info("Cleared Light Industry blacklist");
-                    ApplyAndSave();
-                }
-            }
-            get => false;
         }
 
         public static DropdownItem<string>[] GetLightBuildingDropdownItems()
         {
-            var items = new List<DropdownItem<string>> { new() { value = "None", displayName = "-- Select Building --" } };
+            var items = new List<DropdownItem<string>>();
 
-            foreach (var buildingName in AvailableLightBuildingNames.OrderBy(n => n))
+            // Debug logging
+            var count = AvailableLightBuildingNames?.Count ?? 0;
+            Mod.log.Info($"GetLightBuildingDropdownItems called - AvailableLightBuildingNames has {count} items");
+
+            if (AvailableLightBuildingNames == null || AvailableLightBuildingNames.Count == 0)
             {
-                items.Add(new DropdownItem<string> { value = buildingName, displayName = buildingName });
+                // Lists haven't been populated yet
+                items.Add(new DropdownItem<string> { value = "None", displayName = "(Loading buildings...)" });
+                Mod.log.Warn("Dropdown showing (Loading buildings...) - list is null or empty");
+            }
+            else if (AvailableLightBuildingNames.Count == 1 && AvailableLightBuildingNames[0] == "LoadingPlaceholder")
+            {
+                // Placeholder is set, but real buildings haven't loaded yet
+                items.Add(new DropdownItem<string> { value = "None", displayName = "(Loading buildings...)" });
+                Mod.log.Warn("Dropdown showing (Loading buildings...) - still has placeholder");
+            }
+            else
+            {
+                // Real buildings are loaded
+                items.Add(new DropdownItem<string> { value = "None", displayName = "-- Select Building --" });
+                foreach (var buildingName in AvailableLightBuildingNames.OrderBy(n => n))
+                {
+                    items.Add(new DropdownItem<string> { value = buildingName, displayName = buildingName });
+                }
+                Mod.log.Info($"Dropdown populated with {AvailableLightBuildingNames.Count} buildings");
             }
 
             return items.ToArray();
@@ -119,7 +116,7 @@ namespace LightHeavyIndustry
 
         // ===== HEAVY INDUSTRY BLACKLIST =====
 
-        [SettingsUISection(kBlacklistSection, "HeavyIndustryBlacklist")]
+        [SettingsUIHidden]
         public List<string> HeavyIndustryBlacklist { get; set; } = new();
 
         [SettingsUISection(kBlacklistSection, "HeavyIndustryBlacklist")]
@@ -128,7 +125,7 @@ namespace LightHeavyIndustry
         {
             get => HeavyIndustryBlacklist.Count > 0
                 ? string.Join("\n", HeavyIndustryBlacklist)
-                : "# No buildings blacklisted";
+                : "# No buildings blacklisted for Heavy Industry";
             set { }
         }
 
@@ -138,7 +135,7 @@ namespace LightHeavyIndustry
 
         [SettingsUIButton]
         [SettingsUISection(kBlacklistSection, "HeavyIndustryBlacklist")]
-        public bool AddToHeavyBlacklist
+        public bool AddHeavyBlacklist
         {
             set
             {
@@ -153,50 +150,30 @@ namespace LightHeavyIndustry
                     }
                 }
             }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUISection(kBlacklistSection, "HeavyIndustryBlacklist")]
-        public bool RemoveLastHeavyBlacklist
-        {
-            set
-            {
-                if (value && HeavyIndustryBlacklist.Count > 0)
-                {
-                    var removed = HeavyIndustryBlacklist[HeavyIndustryBlacklist.Count - 1];
-                    HeavyIndustryBlacklist.RemoveAt(HeavyIndustryBlacklist.Count - 1);
-                    Mod.log.Info($"Removed from Heavy Industry blacklist: {removed}");
-                    ApplyAndSave();
-                }
-            }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUIConfirmation]
-        [SettingsUISection(kBlacklistSection, "HeavyIndustryBlacklist")]
-        public bool ClearHeavyBlacklist
-        {
-            set
-            {
-                if (value)
-                {
-                    HeavyIndustryBlacklist.Clear();
-                    Mod.log.Info("Cleared Heavy Industry blacklist");
-                    ApplyAndSave();
-                }
-            }
-            get => false;
         }
 
         public static DropdownItem<string>[] GetHeavyBuildingDropdownItems()
         {
-            var items = new List<DropdownItem<string>> { new() { value = "None", displayName = "-- Select Building --" } };
+            var items = new List<DropdownItem<string>>();
 
-            foreach (var buildingName in AvailableHeavyBuildingNames.OrderBy(n => n))
+            if (AvailableHeavyBuildingNames == null || AvailableHeavyBuildingNames.Count == 0)
             {
-                items.Add(new DropdownItem<string> { value = buildingName, displayName = buildingName });
+                // Lists haven't been populated yet
+                items.Add(new DropdownItem<string> { value = "None", displayName = "(Loading buildings...)" });
+            }
+            else if (AvailableHeavyBuildingNames.Count == 1 && AvailableHeavyBuildingNames[0] == "LoadingPlaceholder")
+            {
+                // Placeholder is set, but real buildings haven't loaded yet
+                items.Add(new DropdownItem<string> { value = "None", displayName = "(Loading buildings...)" });
+            }
+            else
+            {
+                // Real buildings are loaded
+                items.Add(new DropdownItem<string> { value = "None", displayName = "-- Select Building --" });
+                foreach (var buildingName in AvailableHeavyBuildingNames.OrderBy(n => n))
+                {
+                    items.Add(new DropdownItem<string> { value = buildingName, displayName = buildingName });
+                }
             }
 
             return items.ToArray();
@@ -204,7 +181,7 @@ namespace LightHeavyIndustry
 
         // ===== LIGHT INDUSTRY WHITELIST =====
 
-        [SettingsUISection(kWhitelistSection, "LightIndustryWhitelist")]
+        [SettingsUIHidden]
         public List<string> LightIndustryWhitelist { get; set; } = new();
 
         [SettingsUISection(kWhitelistSection, "LightIndustryWhitelist")]
@@ -213,7 +190,7 @@ namespace LightHeavyIndustry
         {
             get => LightIndustryWhitelist.Count > 0
                 ? string.Join("\n", LightIndustryWhitelist)
-                : "# No buildings whitelisted";
+                : "# No buildings whitelisted for Light Industry";
             set { }
         }
 
@@ -223,7 +200,7 @@ namespace LightHeavyIndustry
 
         [SettingsUIButton]
         [SettingsUISection(kWhitelistSection, "LightIndustryWhitelist")]
-        public bool AddToLightWhitelist
+        public bool AddLightWhitelist
         {
             set
             {
@@ -238,46 +215,11 @@ namespace LightHeavyIndustry
                     }
                 }
             }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUISection(kWhitelistSection, "LightIndustryWhitelist")]
-        public bool RemoveLastLightWhitelist
-        {
-            set
-            {
-                if (value && LightIndustryWhitelist.Count > 0)
-                {
-                    var removed = LightIndustryWhitelist[LightIndustryWhitelist.Count - 1];
-                    LightIndustryWhitelist.RemoveAt(LightIndustryWhitelist.Count - 1);
-                    Mod.log.Info($"Removed from Light Industry whitelist: {removed}");
-                    ApplyAndSave();
-                }
-            }
-            get => false;
-        }
-
-        [SettingsUIButton]
-        [SettingsUIConfirmation]
-        [SettingsUISection(kWhitelistSection, "LightIndustryWhitelist")]
-        public bool ClearLightWhitelist
-        {
-            set
-            {
-                if (value)
-                {
-                    LightIndustryWhitelist.Clear();
-                    Mod.log.Info("Cleared Light Industry whitelist");
-                    ApplyAndSave();
-                }
-            }
-            get => false;
         }
 
         // ===== HEAVY INDUSTRY WHITELIST =====
 
-        [SettingsUISection(kWhitelistSection, "HeavyIndustryWhitelist")]
+        [SettingsUIHidden]
         public List<string> HeavyIndustryWhitelist { get; set; } = new();
 
         [SettingsUISection(kWhitelistSection, "HeavyIndustryWhitelist")]
@@ -286,7 +228,7 @@ namespace LightHeavyIndustry
         {
             get => HeavyIndustryWhitelist.Count > 0
                 ? string.Join("\n", HeavyIndustryWhitelist)
-                : "# No buildings whitelisted";
+                : "# No buildings whitelisted for Heavy Industry";
             set { }
         }
 
@@ -296,7 +238,7 @@ namespace LightHeavyIndustry
 
         [SettingsUIButton]
         [SettingsUISection(kWhitelistSection, "HeavyIndustryWhitelist")]
-        public bool AddToHeavyWhitelist
+        public bool AddHeavyWhitelist
         {
             set
             {
@@ -311,20 +253,21 @@ namespace LightHeavyIndustry
                     }
                 }
             }
-            get => false;
         }
 
+        // ===== LIST MANAGEMENT =====
+
         [SettingsUIButton]
-        [SettingsUISection(kWhitelistSection, "HeavyIndustryWhitelist")]
-        public bool RemoveLastHeavyWhitelist
+        [SettingsUIConfirmation]
+        [SettingsUISection(kManagementSection, "ClearLists")]
+        public bool ClearLightBlacklist
         {
             set
             {
-                if (value && HeavyIndustryWhitelist.Count > 0)
+                if (value)
                 {
-                    var removed = HeavyIndustryWhitelist[HeavyIndustryWhitelist.Count - 1];
-                    HeavyIndustryWhitelist.RemoveAt(HeavyIndustryWhitelist.Count - 1);
-                    Mod.log.Info($"Removed from Heavy Industry whitelist: {removed}");
+                    LightIndustryBlacklist.Clear();
+                    Mod.log.Info("Cleared Light Industry blacklist");
                     ApplyAndSave();
                 }
             }
@@ -333,7 +276,41 @@ namespace LightHeavyIndustry
 
         [SettingsUIButton]
         [SettingsUIConfirmation]
-        [SettingsUISection(kWhitelistSection, "HeavyIndustryWhitelist")]
+        [SettingsUISection(kManagementSection, "ClearLists")]
+        public bool ClearHeavyBlacklist
+        {
+            set
+            {
+                if (value)
+                {
+                    HeavyIndustryBlacklist.Clear();
+                    Mod.log.Info("Cleared Heavy Industry blacklist");
+                    ApplyAndSave();
+                }
+            }
+            get => false;
+        }
+
+        [SettingsUIButton]
+        [SettingsUIConfirmation]
+        [SettingsUISection(kManagementSection, "ClearLists")]
+        public bool ClearLightWhitelist
+        {
+            set
+            {
+                if (value)
+                {
+                    LightIndustryWhitelist.Clear();
+                    Mod.log.Info("Cleared Light Industry whitelist");
+                    ApplyAndSave();
+                }
+            }
+            get => false;
+        }
+
+        [SettingsUIButton]
+        [SettingsUIConfirmation]
+        [SettingsUISection(kManagementSection, "ClearLists")]
         public bool ClearHeavyWhitelist
         {
             set

@@ -109,6 +109,25 @@ namespace LightHeavyIndustry.Systems
             }
 
             Mod.log.Info("LightHeavyIndustryZoningSystem created successfully");
+
+            // Populate dropdown lists immediately so they're ready when settings UI loads
+            // We'll update them again in OnUpdate() when we actually find the buildings
+            PopulateDropdownsWithPlaceholder();
+        }
+
+        /// <summary>
+        /// Populate dropdowns with a placeholder message until buildings are loaded
+        /// </summary>
+        private void PopulateDropdownsWithPlaceholder()
+        {
+            Setting.AvailableLightBuildingNames.Clear();
+            Setting.AvailableHeavyBuildingNames.Clear();
+
+            // This will make the dropdowns show "Loading..." until OnUpdate() runs
+            Setting.AvailableLightBuildingNames.Add("LoadingPlaceholder");
+            Setting.AvailableHeavyBuildingNames.Add("LoadingPlaceholder");
+
+            Mod.log.Info("Dropdown placeholders set - will populate with real buildings in OnUpdate()");
         }
 
         protected override void OnUpdate()
@@ -141,6 +160,9 @@ namespace LightHeavyIndustry.Systems
                     .ToArray();
 
                 Mod.log.Info($"Found {industrialBuildings.Length} industrial buildings");
+
+                // Populate dropdown lists for settings UI
+                PopulateSettingsDropdowns(industrialBuildings);
 
                 // Create Light Industry zone (vanilla yellow color)
                 _lightIndustryZone = CreateLightIndustryZone(_vanillaIndustrialZone);
@@ -472,6 +494,40 @@ namespace LightHeavyIndustry.Systems
             catch (Exception ex)
             {
                 Mod.log.Error(ex, "Failed to register zone labels");
+            }
+        }
+
+        /// <summary>
+        /// Populate the static lists in Settings that power the dropdown menus
+        /// </summary>
+        private void PopulateSettingsDropdowns(BuildingPrefab[] industrialBuildings)
+        {
+            try
+            {
+                Mod.log.Info($"PopulateSettingsDropdowns called with {industrialBuildings.Length} buildings");
+
+                // Clear existing lists (including placeholder)
+                Setting.AvailableLightBuildingNames.Clear();
+                Setting.AvailableHeavyBuildingNames.Clear();
+
+                // Add all industrial building names to both lists (they're the same source buildings)
+                foreach (var building in industrialBuildings.OrderBy(b => b.name))
+                {
+                    Setting.AvailableLightBuildingNames.Add(building.name);
+                    Setting.AvailableHeavyBuildingNames.Add(building.name);
+                }
+
+                Mod.log.Info($"SUCCESS: Populated dropdown lists with {industrialBuildings.Length} building names");
+                Mod.log.Info($"AvailableLightBuildingNames.Count = {Setting.AvailableLightBuildingNames.Count}");
+                Mod.log.Info($"AvailableHeavyBuildingNames.Count = {Setting.AvailableHeavyBuildingNames.Count}");
+
+                // NOW register the settings UI since the dropdowns are ready
+                Mod.Settings.RegisterInOptionsUI();
+                Mod.log.Info("Settings UI registered - dropdowns are now populated");
+            }
+            catch (Exception ex)
+            {
+                Mod.log.Error(ex, "Failed to populate settings dropdowns");
             }
         }
     }
