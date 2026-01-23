@@ -1,110 +1,111 @@
 ﻿<Publish>
 	<ModId Value="130356" />
 	<DisplayName Value="Industry Zoning Expanded" />
-	<ShortDescription Value="Adds Light Industrial Zoning, Heavy Industrial Zoning, and Warehouse Zoning, separating low-impact consumer-oriented industry, high-pollution factories that produce raw materials, and warehousing for storage of goods." />
+	<ShortDescription Value="Adds Light Industry, Heavy Industry, and Warehouse zoning, separating low-impact manufacturing, heavy factories, and dedicated storage zones." />
+
 	<LongDescription>
 **This mod is a work in progress**
 
 Introducing three new zoning types: **Light Industrial Zoning**, **Heavy Industrial Zoning**, and **Warehouse Zoning**
 
 ## Light Industry
-* Spawns without any chimneys or smoke VFX
-* Produces:
-	* Food
-	* Convenience Food
-	* Furniture
-	* Electronics
-	* Machinery
-	* Pharmaceuticals
-	* Beverages
-	* Textiles
-*If warehouse zoning is disabled, it will spawn warehouses that store all of the previously listed resources, plus:
-	* Vehicles (Instead of heavy industry warehousing)
-	* Wood
-	* Grain
-	* Livestock
-	* Fish
-	* Vegetables
-	* Cotton
-*Current Pollution values for Light Industry:
-	* Ground Pollution: 5/100 (1/3)
-	* Air Pollution: 0/100 (0/3)
-	* Noise Pollution: 30/100 (1/3)
-	
+- Spawns without any chimneys or smoke VFX
+- Produces:
+  - Food
+  - Convenience Food
+  - Furniture
+  - Electronics
+  - Machinery
+  - Pharmaceuticals
+  - Beverages
+  - Textiles
+- If warehouse zoning is disabled, it will spawn warehouses that store all of the previously listed resources, plus:
+  - Vehicles (Instead of heavy industry warehousing)
+  - Wood
+  - Grain
+  - Livestock
+  - Fish
+  - Vegetables
+  - Cotton
+- Current pollution values for Light Industry:
+  - Ground Pollution: 5/100 (1/3)
+  - Air Pollution: 0/100 (0/3)
+  - Noise Pollution: 30/100 (1/3)
+
 ## Heavy Industry
-* Currently appears visually the same as vanilla industry (may change this)
-* Produces:
-	* Metals
-	* Steel
-	* Chemicals
-	* Petrochemicals
-	* Minerals
-	* Plastics
-	* Concrete
-	* Vehicles
-* If warehouse zoning is disabled, it will spawn warehouses that store all of the previously listed resources (other than vehicles), plus:
-	* Oil
-	* Ore
-	* Coal
-	* Stone
-	
-## Warehousing 
-* Only spawns in storage assets
-* Can be disabled in the settings, which will allow warehousing to spawn in light and heavy industry instead (game must be restarted to take effect)
-* Current Pollution values for Warehousing:
-	* Ground Pollution: 5/100 (1/3)
-	* Air Pollution: 0/100 (0/3)
-	* Noise Pollution: 30/100 (1/3)
-	
+- Currently appears visually the same as vanilla industry (may change this)
+- Produces:
+  - Metals
+  - Steel
+  - Chemicals
+  - Petrochemicals
+  - Minerals
+  - Plastics
+  - Concrete
+  - Vehicles
+- If warehouse zoning is disabled, it will spawn warehouses that store all of the previously listed resources (other than vehicles), plus:
+  - Oil
+  - Ore
+  - Coal
+  - Stone
+
+## Warehousing
+- Only spawns in storage assets
+- Can be disabled in the settings (game must be restarted to take effect)
+- Current pollution values for Warehousing:
+  - Ground Pollution: 5/100 (1/3)
+  - Air Pollution: 0/100 (0/3)
+  - Noise Pollution: 30/100 (1/3)
+
 ### Related mods / design philosophy
 I am aware of:
-* "Clean Industry Zones" by Mimonsi
-* "Specialized Industry Zones" by DillN2
+- "Clean Industry Zones" by Mimonsi
+- "Specialized Industry Zones" by DillN2
 
 This mod aims to feel as vanilla as possible, be future-proof for new assets, and be safe to remove from saves. It avoids relying on a separate asset pack by modifying vanilla industry prefabs at runtime.
 
 ### What is done so far
-* Pollution levels set to the values above for light industry
-* Light industry assets spawn without chimneys/smokestacks and smoke/steam VFX
-* Fixed the bug where chimneys were reappearing after a while
-* Added a Heavy Industry zoning type
-* Added a settings dropdown for blacklisting or whitelisting industrial assets
-* Fixed the UI zoning image
-* Light and heavy industry now produces different goods from each other
-* Added a value for the probability of light industry spawning with silo decorations (10%)
-* Added warehouse zoning
-* Added a user whitelist and blacklist for warehouse assets
-* Added an option in the settings to disable seperate warehouse zoning (enabled by default). This will allow those who dont want to micromanage as much to let the game naturally determine how many warehouses are needed.
+- Pollution levels set for light industry
+- Light industry assets spawn without chimneys/smokestacks and smoke/steam VFX
+- Fixed the bug where chimneys were reappearing after a while
+- Added Heavy Industry zoning type
+- Added settings dropdown for blacklisting/whitelisting industrial assets
+- Fixed the UI zoning image
+- Light and heavy industry now produce different goods
+- Added probability of light industry spawning with silo decorations (10%)
+- Added warehouse zoning
+- Added whitelist/blacklist for warehouse assets
+- Added option to disable separate warehouse zoning (enabled by default)
 
 ### Problems / to-do
-* I tried to add economic modifiers that apply different effects with downsides and upsides for light and heavy industry, but it doesnt seem to be working right now.
-* I may add an option to disable default industry zoning in the settings just to add to the effect of having the seperate zoning types, or if I can get the economic modifiers working, it will perhaps just make it obsolete.
-* I also noticed that some warehouse assets look perfectly acceptable to be in light industry, however I could not get them to work such that they are manufacturing assets purely through the code, I would need to add them as new assets. So I am thinking of making a seperate mod that does this.
-* I like the warehouse assets, but the agriculture warehouse assets look out of place to me in an urban setting so I may blacklist those, and just add agriculture resources to have a chance at being stored in other assets instead.
-	
+- Economic modifiers aren’t working yet
+- Might add option to disable default industry zoning
+- Considering a separate mod for “warehouse-looking manufacturing assets”
+- Agriculture warehouse assets look out of place; may blacklist and re-route storage
 	</LongDescription>
-		<Thumbnail Value="Properties/Thumbnail.png" />
-		<Screenshot Value="Properties/Thumbnail.png" />
-		<Screenshot Value="Properties/IZEUI_ui_crisp.png" />
-		<Screenshot Value="Properties/LightIndustry.png" />
-		<Tag Value="Code Mod" />
-		<Tag Value="UIZonesIndustrial" />
-		<Tag Value="SpawnableBuildingZonesIndustrial" />
-		<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/light-industry.1892940/" />
 
-		<ModVersion Value="1.0.4" />
-		<GameVersion Value="1.5.*" />
+	<Thumbnail Value="Properties/Thumbnail.png" />
+	<Screenshot Value="Properties/Thumbnail.png" />
+	<Screenshot Value="Properties/IZEUI.png" />
+	<Screenshot Value="Properties/LightIndustry.png" />
 
-		<ChangeLog>
-* Light and heavy industry now produces different goods from each other
-* Light industry now has a smaller probability to spawn with silo decorations (10%)
-* Added Warehouse Zoning
-* Added a whitelist and blacklist for warehouse assets
-* Added an option to include warehousing in light and heavy industry rather than being a seperate zone (enabled by default)
-		</ChangeLog>
+	<Tag Value="Code Mod" />
+	<Tag Value="UIZonesIndustrial" />
+	<Tag Value="SpawnableBuildingZonesIndustrial" />
 
-		<ExternalLink Type="github" Url="https://github.com/SirKitTheShort/LightHeavyIndustry" />
-		<AccessLevel Value="Public" />
+	<ForumLink Value="https://forum.paradoxplaza.com/forum/threads/light-industry.1892940/" />
+
+	<ModVersion Value="1.0.4" />
+	<GameVersion Value="1.5.*" />
+
+	<ChangeLog>
+- Light and heavy industry now produce different goods
+- Light industry now has a smaller probability to spawn with silo decorations (10%)
+- Added Warehouse Zoning
+- Added whitelist/blacklist for warehouse assets
+- Added option to include warehousing in light and heavy industry rather than being a separate zone (enabled by default)
+	</ChangeLog>
+
+	<ExternalLink Type="github" Url="https://github.com/SirKitTheShort/LightHeavyIndustry" />
+	<AccessLevel Value="Public" />
 </Publish>
-
-
