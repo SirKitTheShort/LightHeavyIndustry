@@ -1,6 +1,6 @@
 ﻿<Publish>
 	<ModId Value="130356" />
-	<DisplayName Value="Industry Zoning Expanded" />
+	<DisplayName Value="Industrial Zoning Expanded" />
 	<ShortDescription Value="Adds Light Industry, Heavy Industry, and Warehouse zoning, separating low-impact manufacturing, heavy factories, and dedicated storage zones." />
 
 	<LongDescription>
