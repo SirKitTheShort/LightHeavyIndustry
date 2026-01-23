@@ -31,7 +31,6 @@ namespace LightHeavyIndustry
                 // Register UI resources for coui:// protocol
                 var modPath = Path.GetDirectoryName(asset.GetMeta().path);
                 var uiPath = Path.Combine(modPath, "UI");
-
                 if (Directory.Exists(uiPath))
                 {
                     log.Info($"Registering UI resources from: {uiPath}");
@@ -51,7 +50,7 @@ namespace LightHeavyIndustry
                 }
             }
 
-            // Initialize settings (but DON'T register in UI yet - wait for buildings to load)
+            // Initialize settings
             m_Setting = new Setting(this);
             Settings = m_Setting;
 
@@ -59,11 +58,11 @@ namespace LightHeavyIndustry
             GameManager.instance.localizationManager.AddSource("en-US", new LocaleEN(m_Setting));
             AssetDatabase.global.LoadSettings(nameof(LightHeavyIndustry), m_Setting, new Setting(this));
 
-            // Register the zoning system FIRST (it creates the zones and populates dropdowns)
+            // Register the zoning system (creates zones and applies economic modifiers)
             log.Info("Registering LightHeavyIndustryZoningSystem...");
             updateSystem.UpdateBefore<LightHeavyIndustry.Systems.LightHeavyIndustryZoningSystem, Game.Prefabs.PrefabSystem>(SystemUpdatePhase.MainLoop);
 
-            // Register the building processor system (removes chimneys from spawned buildings)
+            // Register the building processor system (tracks completed buildings)
             log.Info("Registering LightIndustryBuildingProcessorSystem...");
             updateSystem.UpdateAt<LightHeavyIndustry.Systems.LightIndustryBuildingProcessorSystem>(SystemUpdatePhase.GameSimulation);
 
@@ -71,8 +70,6 @@ namespace LightHeavyIndustry
             log.Info("Registering ZoneConversionSystem...");
             updateSystem.UpdateAt<LightHeavyIndustry.Systems.ZoneConversionSystem>(SystemUpdatePhase.GameSimulation);
 
-            // IMPORTANT: Register settings in UI AFTER systems are set up
-            // The zoning system will signal when dropdowns are ready
             log.Info("Settings loaded - will register UI after building list is populated");
         }
 

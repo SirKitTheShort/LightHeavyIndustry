@@ -12,12 +12,14 @@ namespace LightHeavyIndustry.Systems
     {
         private readonly Entity _lightZoneEntity;
         private readonly Entity _heavyZoneEntity;
+        private readonly Entity _warehouseZoneEntity;
         private readonly Game.UI.InGame.PrefabUISystem _prefabUISystem;
 
-        public ZoneLocalizationSource(Entity lightZone, Entity heavyZone)
+        public ZoneLocalizationSource(Entity lightZone, Entity heavyZone, Entity warehouseZone)
         {
             _lightZoneEntity = lightZone;
             _heavyZoneEntity = heavyZone;
+            _warehouseZoneEntity = warehouseZone;
             _prefabUISystem = World.DefaultGameObjectInjectionWorld?
                 .GetExistingSystemManaged<Game.UI.InGame.PrefabUISystem>();
         }
@@ -38,18 +40,24 @@ namespace LightHeavyIndustry.Systems
             if (_lightZoneEntity != Entity.Null)
             {
                 _prefabUISystem.GetTitleAndDescription(_lightZoneEntity, out var lightTitleID, out var lightDescID);
-
                 entries[lightTitleID] = "Light Industrial Manufacturing";
-                entries[lightDescID] = "Light industry with manufacturing and warehouses. Lower pollution and noise, but less profitable. No chimneys or smoke.";
+                entries[lightDescID] = "Workshops and factories that produce consumer goods with a smaller environmental impact.";
             }
 
             // Get the title and description IDs for Heavy Industry
             if (_heavyZoneEntity != Entity.Null)
             {
                 _prefabUISystem.GetTitleAndDescription(_heavyZoneEntity, out var heavyTitleID, out var heavyDescID);
-
                 entries[heavyTitleID] = "Heavy Industrial Manufacturing";
-                entries[heavyDescID] = "Heavy industry with manufacturing and warehouses. Higher pollution and noise, but more profitable. Traditional industrial appearance.";
+                entries[heavyDescID] = "Workshops and factories that produce intermediate materials with significant environmental impact.";
+            }
+
+            // Get the title and description IDs for Warehouse Zone (if enabled)
+            if (_warehouseZoneEntity != Entity.Null)
+            {
+                _prefabUISystem.GetTitleAndDescription(_warehouseZoneEntity, out var warehouseTitleID, out var warehouseDescID);
+                entries[warehouseTitleID] = "Warehousing";
+                entries[warehouseDescID] = "Warehouses, storage yards, and distribution facilities used for storing and moving industrial goods.";
             }
 
             return entries;
