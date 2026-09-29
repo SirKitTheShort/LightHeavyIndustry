@@ -56,6 +56,7 @@ namespace LightHeavyIndustry
 
             // Load saved settings from disk
             GameManager.instance.localizationManager.AddSource("en-US", new LocaleEN(m_Setting));
+            GameManager.instance.localizationManager.AddSource("fr-FR", new LocaleFR(m_Setting));
             AssetDatabase.global.LoadSettings(nameof(LightHeavyIndustry), m_Setting, new Setting(this));
 
             // Register the zoning system (creates zones and applies economic modifiers)
